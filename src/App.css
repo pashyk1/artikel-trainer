@@ -307,31 +307,25 @@ body {
   text-transform: uppercase; color: var(--text2); margin-bottom: 12px;
 }
 
-.category-scroll {
-  display: flex;
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 8px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
 }
 
-.category-scroll::-webkit-scrollbar { height: 6px; }
-.category-scroll::-webkit-scrollbar-track { background: transparent; }
-.category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
 .category-card {
-  flex-shrink: 0;
-  min-width: 110px;
   background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 10px;
+  padding: 20px 10px;
   cursor: pointer;
   transition: all 0.15s;
   text-align: center;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .category-card:hover { border-color: var(--border2); background: var(--bg); }
@@ -403,5 +397,53 @@ body {
   .decl-grid  { grid-template-columns: 1fr; }
   .article-btns { gap: 8px; }
   .art-btn    { font-size: 18px; padding: 13px; }
-  .category-card { min-width: 100px; }
+  .category-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .category-card { padding: 14px 8px; }
+}
+
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.active-cat-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.segmented-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  height: 6px;
+}
+
+.progress-segment {
+  flex: 1;
+  background: var(--border);
+  border-radius: 2px;
+  transition: 0.3s;
+}
+
+.progress-segment.correct { background: var(--yellow); }
+.progress-segment.wrong { background: var(--wrong-border); }
+
+.explanation-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 15px;
+  border-radius: var(--radius);
+  margin-top: 20px;
+  text-align: left;
 }
