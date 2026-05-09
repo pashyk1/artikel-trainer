@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import words from '../data/words'
+import words, { CATEGORIES } from '../data/words'
 import { getRuleForWord } from '../data/rules'
 
 const QUIZ_SIZE = 10
@@ -9,10 +9,11 @@ function shuffle(arr) {
 }
 
 export default function Quiz({ t, lang, onAnswer }) {
-  const [quizWords, setQuizWords]         = useState([])
-  const [index, setIndex]                 = useState(0)
-  const [chosen, setChosen]               = useState(null)
-  const [done, setDone]                   = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [quizWords, setQuizWords] = useState([])
+  const [index, setIndex] = useState(0)
+  const [chosen, setChosen] = useState(null)
+  const [done, setDone] = useState(false)
   const [sessionCorrect, setSessionCorrect] = useState(0)
 
   const getDescription = useCallback((w) => {
@@ -22,12 +23,21 @@ export default function Quiz({ t, lang, onAnswer }) {
     return w.de
   }, [lang])
 
-  const startQuiz = useCallback(() => {
-    setQuizWords(shuffle(words).slice(0, QUIZ_SIZE))
-    setIndex(0); setChosen(null); setDone(false); setSessionCorrect(0)
+  const startQuiz = useCallback((category) => {
+    const filtered = category === 'all' 
+      ? words 
+      : words.filter(w => w.category === category)
+    
+    const selected = shuffle(filtered).slice(0, QUIZ_SIZE)
+    setQuizWords(selected)
+    setIndex(0)
+    setChosen(null)
+    setDone(false)
+    setSessionCorrect(0)
+    setSelectedCategory(category)
   }, [])
 
-  useEffect(() => { startQuiz() }, [startQuiz])
+  useEffect(() => { startQuiz('all') }, [startQuiz])
 
   const current = quizWords[index]
 
@@ -44,15 +54,41 @@ export default function Quiz({ t, lang, onAnswer }) {
     else { setIndex(i => i + 1); setChosen(null) }
   }
 
+  const handleCategoryClick = (catId) => {
+    startQuiz(catId)
+  }
+
   if (!current && !done) return null
 
   if (done) {
     return (
-      <div className="quiz-done">
-        <div className="quiz-done-icon">🎉</div>
-        <div className="quiz-done-title">{t.quizDone}</div>
-        <div className="quiz-done-sub">{t.quizResult(sessionCorrect, QUIZ_SIZE)}</div>
-        <button className="next-btn" onClick={startQuiz}>{t.restart}</button>
+      <div>
+        <div className="quiz-done">
+          <div className="quiz-done-icon">🎉</div>
+          <div className="quiz-done-title">{t.quizDone}</div>
+          <div className="quiz-done-sub">{t.quizResult(sessionCorrect, QUIZ_SIZE)}</div>
+          <button className="next-btn" onClick={() => startQuiz(selectedCategory)}>{t.restart}</button>
+        </div>
+
+        <div className="category-section">
+          <div className="category-label">{t.categories}</div>
+          <div className="category-scroll">
+            {CATEGORIES.map(cat => {
+              const count = cat.id === 'all' ? words.length : words.filter(w => w.category === cat.id).length
+              return (
+                <button
+                  key={cat.id}
+                  className={`category-card${selectedCategory === cat.id ? ' active' : ''}`}
+                  onClick={() => handleCategoryClick(cat.id)}
+                >
+                  <div className="category-emoji">{cat.emoji}</div>
+                  <div className="category-name">{cat[lang]}</div>
+                  <div className="category-count">{count} {t.words}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
     )
   }
@@ -117,6 +153,28 @@ export default function Quiz({ t, lang, onAnswer }) {
         <button className="next-btn" onClick={handleNext}>
           {index + 1 >= QUIZ_SIZE ? t.quizDone : t.nextWord}
         </button>
+      )}
+
+      {!chosen && (
+        <div className="category-section">
+          <div className="category-label">{t.categories}</div>
+          <div className="category-scroll">
+            {CATEGORIES.map(cat => {
+              const count = cat.id === 'all' ? words.length : words.filter(w => w.category === cat.id).length
+              return (
+                <button
+                  key={cat.id}
+                  className={`category-card${selectedCategory === cat.id ? ' active' : ''}`}
+                  onClick={() => handleCategoryClick(cat.id)}
+                >
+                  <div className="category-emoji">{cat.emoji}</div>
+                  <div className="category-name">{cat[lang]}</div>
+                  <div className="category-count">{count} {t.words}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
       )}
     </div>
   )

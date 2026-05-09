@@ -294,10 +294,52 @@ body {
 .next-btn:hover { background: var(--yellow-hover); }
 
 /* ── Quiz done ── */
-.quiz-done { text-align: center; padding: 3rem 1rem; }
+.quiz-done { text-align: center; padding: 3rem 1rem 2rem; }
 .quiz-done-icon  { font-size: 52px; margin-bottom: 1rem; }
 .quiz-done-title { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
 .quiz-done-sub   { font-size: 16px; color: var(--text2); margin-bottom: 2rem; }
+
+/* ── Category section ── */
+.category-section { margin-top: 2rem; }
+
+.category-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text2); margin-bottom: 12px;
+}
+
+.category-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.category-scroll::-webkit-scrollbar { height: 6px; }
+.category-scroll::-webkit-scrollbar-track { background: transparent; }
+.category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+.category-card {
+  flex-shrink: 0;
+  min-width: 110px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.category-card:hover { border-color: var(--border2); background: var(--bg); }
+.category-card.active { border-color: var(--yellow); background: rgba(245,194,0,0.06); }
+
+.category-emoji { font-size: 28px; margin-bottom: 6px; }
+.category-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.category-count { font-size: 11px; color: var(--text2); }
 
 /* ── Stats ── */
 .register-cta {
@@ -332,9 +374,34 @@ body {
 
 /* ── Mobile ── */
 @media (max-width: 520px) {
-  .hero-title { font-size: 24px; }
-  .nav-link   { font-size: 12px; padding: 7px 6px; }
-  .quiz-word  { font-size: 34px; }
-  .word-main  { font-size: 26px; }
+  .header-wrapper { padding: 0.75rem 0.75rem 1.5rem; }
+
+  .header-card {
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0.75rem 1rem;
+  }
+
+  .logo { font-size: 16px; flex: 1; }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    padding: 0;
+    gap: 4px;
+  }
+
+  .nav-link { font-size: 12px; padding: 8px 4px; }
+  .lang-dropdown { order: 2; }
+
+  .hero-title { font-size: 22px; }
+  .hero-sub   { font-size: 13px; }
+  .quiz-word  { font-size: 32px; }
+  .word-main  { font-size: 24px; }
   .decl-grid  { grid-template-columns: 1fr; }
+  .article-btns { gap: 8px; }
+  .art-btn    { font-size: 18px; padding: 13px; }
+  .category-card { min-width: 100px; }
 }
