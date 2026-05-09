@@ -307,6 +307,21 @@ body {
   text-transform: uppercase; color: var(--text2); margin-bottom: 12px;
 }
 
+.category-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.category-scroll::-webkit-scrollbar { height: 6px; }
+.category-scroll::-webkit-scrollbar-track { background: transparent; }
+.category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -318,14 +333,14 @@ body {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   padding: 20px 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
 }
 
 .category-card:hover { border-color: var(--border2); background: var(--bg); }
@@ -397,53 +412,112 @@ body {
   .decl-grid  { grid-template-columns: 1fr; }
   .article-btns { gap: 8px; }
   .art-btn    { font-size: 18px; padding: 13px; }
-  .category-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .category-grid { gap: 8px; }
   .category-card { padding: 14px 8px; }
 }
 
-.quiz-header {
+/* ── Quiz category header ── */
+.quiz-category-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.back-link {
+.quiz-exit-btn {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quiz-exit-btn:hover { color: var(--text); border-color: var(--text2); }
+
+.quiz-category-info { display: flex; flex-direction: column; }
+.quiz-category-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.quiz-category-total { font-size: 11px; color: var(--text2); }
+
+/* ── Segmented progress bar ── */
+.progress-segments {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  align-items: center;
+}
+
+.progress-seg {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border2);
+  transition: background 0.2s;
+  min-width: 0;
+}
+
+.seg-correct { background: var(--yellow); }
+.seg-wrong   { background: var(--wrong-border); }
+.seg-current { background: var(--border2); outline: 2px solid var(--yellow); outline-offset: 1px; }
+
+/* ── Quiz done summary bar ── */
+.quiz-done-segments {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin: 1rem auto 1.5rem;
+  max-width: 360px;
+  flex-wrap: wrap;
+}
+.quiz-done-segments .progress-seg { flex: none; width: 18px; height: 8px; border-radius: 4px; }
+
+/* ── Quiz done actions ── */
+.quiz-done-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.quiz-done-actions .next-btn { flex: 1; min-width: 140px; max-width: 220px; }
+
+.repeat-btn {
+  flex: 1;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1.5px solid var(--wrong-border);
+  border-radius: var(--radius);
+  background: var(--wrong-bg);
+  color: var(--wrong);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.repeat-btn:hover { opacity: 0.85; }
+
+.quiz-back-link {
   background: none;
   border: none;
   color: var(--text2);
+  font-size: 13px;
   cursor: pointer;
-  font-size: 14px;
+  padding: 4px;
+}
+.quiz-back-link:hover { color: var(--text); }
+
+/* ── Mobile ── */
+@media (max-width: 520px) {
+  .progress-seg { height: 5px; }
+  .quiz-done-segments .progress-seg { width: 14px; height: 6px; }
 }
 
-.active-cat-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.segmented-progress {
+.quiz-category-header--all {
   display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  height: 6px;
-}
-
-.progress-segment {
-  flex: 1;
-  background: var(--border);
-  border-radius: 2px;
-  transition: 0.3s;
-}
-
-.progress-segment.correct { background: var(--yellow); }
-.progress-segment.wrong { background: var(--wrong-border); }
-
-.explanation-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 15px;
-  border-radius: var(--radius);
-  margin-top: 20px;
-  text-align: left;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
