@@ -3,19 +3,36 @@ import words, { CATEGORIES } from '../data/words'
 import { getRuleForWord } from '../data/rules'
 
 const ALL_QUIZ_SIZE = 20
+const CASES = ['N', 'G', 'D', 'A']
 
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5)
 }
 
+// Generate 3 wrong declension options for a given word + case
+function getWrongDeclOptions(current, caseKey) {
+  const correct = current.decl[caseKey]
+  const pool = words
+    .filter(w => w.word !== current.word && w.decl && w.decl[caseKey] !== correct)
+    .map(w => w.decl[caseKey])
+  // Deduplicate
+  const unique = [...new Set(pool)]
+  return shuffle(unique).slice(0, 3)
+}
+
 export default function Quiz({ t, lang, onAnswer }) {
-  const [mode, setMode]           = useState('all')   // 'all' | 'category'
+  const [quizMode, setQuizMode]   = useState('artikel')  // 'artikel' | 'deklination' | 'beide'
+  const [mode, setMode]           = useState('all')       // 'all' | 'category'
   const [selectedCategory, setCat] = useState('all')
   const [quizWords, setQuizWords] = useState([])
   const [index, setIndex]         = useState(0)
   const [chosen, setChosen]       = useState(null)
   const [done, setDone]           = useState(false)
   const [results, setResults]     = useState([])
+
+  // For deklination mode: which case is being asked
+  const [currentCase, setCurrentCase] = useState('N')
+  const [declOptions, setDeclOptions] = useState([])
 
   const getDescription = useCallback((w) => {
     if (!w) return ''
@@ -24,25 +41,52 @@ export default function Quiz({ t, lang, onAnswer }) {
     return w.de
   }, [lang])
 
+  // Pick a random case and build answer options for a word
+  const buildDeclQuestion = useCallback((word) => {
+    const caseKey = CASES[Math.floor(Math.random() * CASES.length)]
+    const correct = word.decl[caseKey]
+    const wrong   = getWrongDeclOptions(word, caseKey)
+    const options = shuffle([correct, ...wrong])
+    setCurrentCase(caseKey)
+    setDeclOptions(options)
+  }, [])
+
   const startQuiz = useCallback((category, wordList = null) => {
-    let selected
-    if (wordList) {
-      selected = shuffle(wordList)
-    } else if (category === 'all') {
-      selected = shuffle(words).slice(0, ALL_QUIZ_SIZE)
-    } else {
-      selected = shuffle(words.filter(w => w.category === category))
+    // Only use words that have decl data when needed
+    let pool = wordList || (
+      category === 'all'
+        ? words
+        : words.filter(w => w.category === category)
+    )
+
+    if (quizMode === 'deklination' || quizMode === 'beide') {
+      pool = pool.filter(w => w.decl)
     }
+
+    let selected = shuffle(pool)
+    if (category === 'all' && !wordList) selected = selected.slice(0, ALL_QUIZ_SIZE)
+
     setQuizWords(selected)
     setIndex(0)
     setChosen(null)
     setDone(false)
     setResults([])
     setCat(category)
-  }, [])
+  }, [quizMode])
 
-  // Start with all words on mount
   useEffect(() => { startQuiz('all') }, [startQuiz])
+
+  // When index changes in deklination/beide mode, build new question
+  useEffect(() => {
+    const current = quizWords[index]
+    if (!current) return
+    const needDecl = quizMode === 'deklination' ||
+      (quizMode === 'beide' && Math.random() < 0.5)
+    if (needDecl && current.decl) {
+      buildDeclQuestion(current)
+      setCurrentCase(prev => prev) // will be set in buildDeclQuestion
+    }
+  }, [index, quizWords, quizMode, buildDeclQuestion])
 
   const handleCategoryClick = (catId) => {
     setMode('category')
@@ -54,18 +98,44 @@ export default function Quiz({ t, lang, onAnswer }) {
     startQuiz('all')
   }
 
-  const handleAnswer = (article) => {
+  // Determine if current question is a declension question
+  const isDeclQuestion = () => {
+    const current = quizWords[index]
+    if (!current?.decl) return false
+    if (quizMode === 'deklination') return true
+    if (quizMode === 'beide') return declOptions.length > 0
+    return false
+  }
+
+  const handleAnswer = (answer) => {
     if (chosen) return
     const current = quizWords[index]
-    const isCorrect = article === current.article
-    setChosen(article)
+    let isCorrect
+
+    if (isDeclQuestion()) {
+      isCorrect = answer === current.decl[currentCase]
+    } else {
+      isCorrect = answer === current.article
+    }
+
+    setChosen(answer)
     setResults(r => [...r, isCorrect])
     onAnswer(isCorrect, current.word)
   }
 
+  // Reset declOptions when switching to artikel mode
+  const handleModeChange = (newMode) => {
+    setQuizMode(newMode)
+    if (newMode === 'artikel') setDeclOptions([])
+  }
+
   const handleNext = () => {
+    setDeclOptions([])
     if (index + 1 >= quizWords.length) setDone(true)
-    else { setIndex(i => i + 1); setChosen(null) }
+    else {
+      setIndex(i => i + 1)
+      setChosen(null)
+    }
   }
 
   const handleRepeatMistakes = () => {
@@ -76,6 +146,18 @@ export default function Quiz({ t, lang, onAnswer }) {
   const cat      = CATEGORIES.find(c => c.id === selectedCategory)
   const quizSize = quizWords.length
   const current  = quizWords[index]
+
+  const caseLabels = {
+    de: { N: 'Nominativ', G: 'Genitiv', D: 'Dativ', A: 'Akkusativ' },
+    ru: { N: 'Именит.',   G: 'Родит.',  D: 'Дат.',  A: 'Винит.'  },
+    en: { N: 'Nominative',G: 'Genitive',D: 'Dative', A: 'Accusative' },
+  }
+
+  const modeLabels = {
+    de: { artikel: 'Artikel', deklination: 'Deklination', beide: 'Beides' },
+    ru: { artikel: 'Артикль', deklination: 'Склонение',   beide: 'Всё'   },
+    en: { artikel: 'Article', deklination: 'Declension',  beide: 'Both'  },
+  }
 
   // ── DONE SCREEN ──────────────────────────────────────────────
   if (done) {
@@ -143,13 +225,31 @@ export default function Quiz({ t, lang, onAnswer }) {
   // ── QUIZ SCREEN ──────────────────────────────────────────────
   if (!current) return null
 
-  const isCorrect   = chosen === current.article
+  const isDecl      = isDeclQuestion()
+  const isCorrect   = isDecl
+    ? chosen === current.decl[currentCase]
+    : chosen === current.article
   const rule        = (!isCorrect && chosen) ? getRuleForWord(current.word, lang) : null
   const hint        = (!isCorrect && chosen && current.hint) ? current.hint[lang] : null
   const explanation = rule || (hint ? { rule: hint, exceptions: [] } : null)
 
+  const ml = modeLabels[lang] || modeLabels['de']
+
   return (
     <div>
+      {/* ── Mode selector ── */}
+      <div className="quiz-mode-selector">
+        {['artikel', 'deklination', 'beide'].map(m => (
+          <button
+            key={m}
+            className={`quiz-mode-btn${quizMode === m ? ' active' : ''}`}
+            onClick={() => handleModeChange(m)}
+          >
+            {ml[m]}
+          </button>
+        ))}
+      </div>
+
       {/* Header: back button (category mode) OR category name (all mode) */}
       {mode === 'category' ? (
         <div className="quiz-category-header">
@@ -182,31 +282,64 @@ export default function Quiz({ t, lang, onAnswer }) {
       <div className="quiz-card">
         <div className="quiz-word">{current.word}</div>
         <div className="quiz-trans">{getDescription(current)}</div>
+        {/* Show which case is being asked in decl mode */}
+        {isDecl && (
+          <div className="quiz-case-badge">
+            {(caseLabels[lang] || caseLabels['de'])[currentCase]}
+          </div>
+        )}
       </div>
 
-      <div className="article-btns">
-        {['der', 'die', 'das'].map(article => {
-          let cls = 'art-btn'
-          if (chosen) {
-            if (article === current.article) cls += ' correct'
-            else if (article === chosen)     cls += ' wrong'
-            else                             cls += ' dimmed'
-          }
-          return (
-            <button key={article} className={cls} onClick={() => handleAnswer(article)} disabled={!!chosen}>
-              {article}
-            </button>
-          )
-        })}
-      </div>
-
-      {chosen && (
-        <div className={`feedback ${isCorrect ? 'feedback-ok' : 'feedback-err'}`}>
-          {isCorrect ? t.correct : t.wrong(`${current.article} ${current.word}`)}
+      {/* ── ARTIKEL buttons (3) ── */}
+      {!isDecl && (
+        <div className="article-btns">
+          {['der', 'die', 'das'].map(article => {
+            let cls = 'art-btn'
+            if (chosen) {
+              if (article === current.article) cls += ' correct'
+              else if (article === chosen)     cls += ' wrong'
+              else                             cls += ' dimmed'
+            }
+            return (
+              <button key={article} className={cls} onClick={() => handleAnswer(article)} disabled={!!chosen}>
+                {article}
+              </button>
+            )
+          })}
         </div>
       )}
 
-      {chosen && !isCorrect && explanation && (
+      {/* ── DEKLINATION buttons (4 options) ── */}
+      {isDecl && (
+        <div className="decl-btns">
+          {declOptions.map(option => {
+            let cls = 'decl-btn'
+            if (chosen) {
+              if (option === current.decl[currentCase]) cls += ' correct'
+              else if (option === chosen)               cls += ' wrong'
+              else                                      cls += ' dimmed'
+            }
+            return (
+              <button key={option} className={cls} onClick={() => handleAnswer(option)} disabled={!!chosen}>
+                {option}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {chosen && (
+        <div className={`feedback ${isCorrect ? 'feedback-ok' : 'feedback-err'}`}>
+          {isCorrect
+            ? t.correct
+            : isDecl
+              ? (lang === 'ru' ? `Нет — правильно: ${current.decl[currentCase]}` : `Falsch — richtig: ${current.decl[currentCase]}`)
+              : t.wrong(`${current.article} ${current.word}`)
+          }
+        </div>
+      )}
+
+      {chosen && !isCorrect && explanation && !isDecl && (
         <div className="explanation-card">
           <div className="explanation-rule">
             <span className="explanation-label">{t.ruleLabel}: </span>
