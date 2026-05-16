@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const GEMINI_KEY = 'AIzaSyASBV6fe-yeKDir4fXHIBWT8AQfPfafZac'
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY
+
 
 async function fetchWordDetails(word, article, lang) {
   const langInstruction = {
