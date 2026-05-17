@@ -10,10 +10,12 @@ const LANGUAGES = [
   { code: 'de', label: 'Deutsch',    flag: '🇩🇪' },
   { code: 'ru', label: 'Русский',    flag: '🇷🇺' },
   { code: 'en', label: 'English',    flag: '🇬🇧' },
-  // Новые языки добавляй сюда — одна строчка:
-  // { code: 'uk', label: 'Українська', flag: '🇺🇦' },
-  // { code: 'pl', label: 'Polski',     flag: '🇵🇱' },
-  // { code: 'tr', label: 'Türkçe',     flag: '🇹🇷' },
+  { code: 'pl', label: 'Polski',     flag: '🇵🇱' },
+  { code: 'tr', label: 'Türkçe',     flag: '🇹🇷' },
+  { code: 'es', label: 'Español',    flag: '🇪🇸' },
+  { code: 'it', label: 'Italiano',   flag: '🇮🇹' },
+  { code: 'fr', label: 'Français',   flag: '🇫🇷' },
+  { code: 'zh', label: '中文',        flag: '🇨🇳' },
 ]
 
 function LangDropdown({ lang, setLang }) {

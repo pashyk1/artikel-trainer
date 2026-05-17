@@ -4,22 +4,26 @@ import { supabase } from '../lib/supabase'
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY
 
 
-async function fetchWordDetails(word, article, lang) {
-  const langInstruction = {
-    ru: 'Дай краткое описание на русском языке (1 предложение).',
-    en: 'Give a short description in English (1 sentence).',
-    de: 'Gib eine kurze Beschreibung auf Deutsch (1 Satz).',
-  }[lang] || 'Gib eine kurze Beschreibung auf Deutsch (1 Satz).'
-
+async function fetchWordDetails(word, article) {
   const prompt = `Du bist ein Deutschlehrer. Das Wort ist: "${article} ${word}".
 
-${langInstruction}
-
+Gib eine kurze Beschreibung auf Deutsch (1 Satz).
+Gib außerdem die Übersetzung des Wortes in folgende Sprachen: ru, en, es, it, fr, zh, pl, tr.
 Gib außerdem die vier Deklinationsformen im Singular mit je einem natürlichen Beispielsatz.
 
 Antworte NUR mit diesem JSON, ohne Erklärungen, ohne Markdown:
 {
   "description": "...",
+  "translations": {
+    "ru": "...",
+    "en": "...",
+    "es": "...",
+    "it": "...",
+    "fr": "...",
+    "zh": "...",
+    "pl": "...",
+    "tr": "..."
+  },
   "decl": {
     "N": { "form": "${article} ${word}", "example": "..." },
     "G": { "form": "...", "example": "..." },
@@ -29,7 +33,7 @@ Antworte NUR mit diesem JSON, ohne Erklärungen, ohne Markdown:
 }`
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,9 +50,15 @@ Antworte NUR mit diesem JSON, ohne Erklärungen, ohne Markdown:
 }
 
 const CASE_LABELS = {
-  de: { N: 'Nominativ',   G: 'Genitiv',   D: 'Dativ',  A: 'Akkusativ'  },
-  ru: { N: 'Именит.',     G: 'Родит.',     D: 'Дат.',   A: 'Винит.'     },
-  en: { N: 'Nominative',  G: 'Genitive',   D: 'Dative', A: 'Accusative' },
+  de: { N: 'Nominativ',   G: 'Genitiv',    D: 'Dativ',     A: 'Akkusativ'  },
+  ru: { N: 'Именит.',     G: 'Родит.',      D: 'Дат.',      A: 'Винит.'     },
+  en: { N: 'Nominative',  G: 'Genitive',    D: 'Dative',    A: 'Accusative' },
+  es: { N: 'Nominativo',  G: 'Genitivo',    D: 'Dativo',    A: 'Acusativo'  },
+  it: { N: 'Nominativo',  G: 'Genitivo',    D: 'Dativo',    A: 'Accusativo' },
+  fr: { N: 'Nominatif',   G: 'Génitif',     D: 'Datif',     A: 'Accusatif'  },
+  zh: { N: '主格',         G: '属格',         D: '与格',       A: '宾格'        },
+  pl: { N: 'Mianownik',   G: 'Dopełniacz',  D: 'Celownik',  A: 'Biernik'    },
+  tr: { N: 'Yalın',       G: 'İyelik',      D: 'Yönelme',   A: 'Belirtme'   },
 }
 
 export default function Search({ t, lang }) {
@@ -95,28 +105,28 @@ export default function Search({ t, lang }) {
     // Сначала проверяем Supabase
     const { data: row } = await supabase
       .from('words')
-      .select('description, decl')
+      .select('description, decl, translations')
       .eq('id', w.id)
       .single()
 
-    if (row?.description && row?.decl) {
+    if (row?.description && row?.decl && row?.translations) {
   // Увеличиваем счётчик
   await supabase.rpc('increment_search_count', { word_id: w.id })
   
   // Есть в базе — берём оттуда
-  const result = { status: 'done', data: { description: row.description, decl: row.decl } }
+  const result = { status: 'done', data: { description: row.description, decl: row.decl, translations: row.translations } }
   cache.current[w.word] = result
   setDetails(d => ({ ...d, [w.word]: result }))
   return
 }
 
     // Нет в базе — запрашиваем у Gemini
-    const data = await fetchWordDetails(w.word, w.article, lang)
+    const data = await fetchWordDetails(w.word, w.article)
 
     // Сохраняем в Supabase
 await supabase
   .from('words')
-  .update({ description: data.description, decl: data.decl })
+  .update({ description: data.description, translations: data.translations, decl: data.decl })
   .eq('id', w.id)
 
 // Увеличиваем счётчик
@@ -203,31 +213,37 @@ await supabase.rpc('increment_search_count', { word_id: w.id })
                 )}
 
                 {det?.status === 'done' && (
-                  <>
-                    {det.data.description && (
-                      <div className="word-sub" style={{ marginTop: 8 }}>
-                        {det.data.description}
-                      </div>
-                    )}
-                    {det.data.decl && (
-                      <>
-                        <div className="decl-divider" />
-                        <div className="decl-label">{t.declension}</div>
-                        <div className="decl-grid">
-                          {caseKeys.map(key => (
-                            <div key={key} className="decl-cell">
-                              <div className="decl-case">{caseLabels[key]}</div>
-                              <div className="decl-form">{det.data.decl[key]?.form}</div>
-                              {det.data.decl[key]?.example && (
-                                <div className="decl-example">{det.data.decl[key].example}</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
+  <>
+    {(det.data.translations?.[lang] || det.data.description) && (
+      <div className="word-sub" style={{ marginTop: 8 }}>
+        {det.data.translations?.[lang] && (
+  <span style={{ fontWeight: 600 }}>
+    {det.data.translations[lang].charAt(0).toUpperCase() + det.data.translations[lang].slice(1)}
+  </span>
+)}
+        {det.data.translations?.[lang] && det.data.description && ' — '}
+        {det.data.description}
+      </div>
+    )}
+    {det.data.decl && (
+      <>
+        <div className="decl-divider" />
+        <div className="decl-label">{t.declension}</div>
+        <div className="decl-grid">
+          {caseKeys.map(key => (
+          <div key={key} className="decl-cell">
+              <div className="decl-case">{caseLabels[key]}</div>
+              <div className="decl-form">{det.data.decl[key]?.form}</div>
+              {det.data.decl[key]?.example && (
+                <div className="decl-example">{det.data.decl[key].example}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </>
+)}
               </div>
             )}
           </div>
