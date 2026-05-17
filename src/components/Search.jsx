@@ -81,26 +81,54 @@ export default function Search({ t, lang }) {
 
   // ── Клик по карточке — загрузить детали ──────────────────
   const handleCardClick = async (w) => {
-    // Если уже открыта — закрыть
-    if (expanded === w.word) { setExpanded(null); return }
-    setExpanded(w.word)
+  if (expanded === w.word) { setExpanded(null); return }
+  setExpanded(w.word)
 
-    // Если уже в кеше — просто открыть
-    if (cache.current[w.word]) {
-      setDetails(d => ({ ...d, [w.word]: cache.current[w.word] }))
-      return
-    }
-
-    // Загрузить через Gemini
-    setDetails(d => ({ ...d, [w.word]: { status: 'loading' } }))
-    try {
-      const data = await fetchWordDetails(w.word, w.article, lang)
-      cache.current[w.word] = { status: 'done', data }
-      setDetails(d => ({ ...d, [w.word]: { status: 'done', data } }))
-    } catch {
-      setDetails(d => ({ ...d, [w.word]: { status: 'error' } }))
-    }
+  if (cache.current[w.word]) {
+    setDetails(d => ({ ...d, [w.word]: cache.current[w.word] }))
+    return
   }
+
+  setDetails(d => ({ ...d, [w.word]: { status: 'loading' } }))
+
+  try {
+    // Сначала проверяем Supabase
+    const { data: row } = await supabase
+      .from('words')
+      .select('description, decl')
+      .eq('id', w.id)
+      .single()
+
+    if (row?.description && row?.decl) {
+  // Увеличиваем счётчик
+  await supabase.rpc('increment_search_count', { word_id: w.id })
+  
+  // Есть в базе — берём оттуда
+  const result = { status: 'done', data: { description: row.description, decl: row.decl } }
+  cache.current[w.word] = result
+  setDetails(d => ({ ...d, [w.word]: result }))
+  return
+}
+
+    // Нет в базе — запрашиваем у Gemini
+    const data = await fetchWordDetails(w.word, w.article, lang)
+
+    // Сохраняем в Supabase
+await supabase
+  .from('words')
+  .update({ description: data.description, decl: data.decl })
+  .eq('id', w.id)
+
+// Увеличиваем счётчик
+await supabase.rpc('increment_search_count', { word_id: w.id })
+
+    const result = { status: 'done', data }
+    cache.current[w.word] = result
+    setDetails(d => ({ ...d, [w.word]: result }))
+  } catch {
+    setDetails(d => ({ ...d, [w.word]: { status: 'error' } }))
+  }
+}
 
   const caseKeys   = ['N', 'G', 'D', 'A']
   const caseLabels = CASE_LABELS[lang] || CASE_LABELS.de
